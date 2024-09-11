@@ -46,6 +46,40 @@ if uploaded_file is not None:
     # Sidebar for modification controls
     st.sidebar.header("Modification Controls")
 
+    # Expanded list of functional groups
+    groups = {
+        "Alkyl Groups": {
+            "Methyl (-CH3)": ["C", "H", "H", "H"],
+            "Ethyl (-CH2CH3)": ["C", "H", "H", "C", "H", "H", "H"],
+            "Propyl (-CH2CH2CH3)": ["C", "H", "H", "C", "H", "H", "C", "H", "H", "H"],
+        },
+        "Oxygen-containing Groups": {
+            "Hydroxyl (-OH)": ["O", "H"],
+            "Carbonyl (=O)": ["O"],
+            "Carboxyl (-COOH)": ["C", "O", "O", "H"],
+            "Ether (-OR)": ["O", "C", "H", "H", "H"],
+            "Ester (-COOR)": ["C", "O", "O", "C", "H", "H", "H"],
+        },
+        "Nitrogen-containing Groups": {
+            "Amino (-NH2)": ["N", "H", "H"],
+            "Amide (-CONH2)": ["C", "O", "N", "H", "H"],
+            "Nitro (-NO2)": ["N", "O", "O"],
+        },
+        "Halogen Groups": {
+            "Fluoro (-F)": ["F"],
+            "Chloro (-Cl)": ["Cl"],
+            "Bromo (-Br)": ["Br"],
+            "Iodo (-I)": ["I"],
+        },
+        "Sulfur-containing Groups": {
+            "Thiol (-SH)": ["S", "H"],
+            "Sulfone (-SO2-)": ["S", "O", "O"],
+        },
+        "Phosphorus-containing Groups": {
+            "Phosphate (-PO4)": ["P", "O", "O", "O", "O"],
+        },
+    }
+
     modifications = []
     add_another = True
     modification_count = 0
@@ -71,17 +105,17 @@ if uploaded_file is not None:
 
         # Group selection (only for Substitution and Addition)
         if mod_type in ["Substitution", "Addition"]:
-            groups = {
-                "OH (Alcohol)": ["O", "H"],
-                "NH2 (Amine)": ["N", "H", "H"],
-                "COOH (Carboxyl)": ["C", "O", "O", "H"],
-            }
+            group_category = st.sidebar.selectbox(
+                "Select functional group category:",
+                options=list(groups.keys()),
+                key=f"group_category_{modification_count}",
+            )
             selected_group = st.sidebar.selectbox(
                 f"Select group for modification:",
-                options=list(groups.keys()),
+                options=list(groups[group_category].keys()),
                 key=f"group_{modification_count}",
             )
-            group = groups[selected_group]
+            group = groups[group_category][selected_group]
         else:
             group = None
 
