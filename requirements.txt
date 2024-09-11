@@ -2,6 +2,8 @@ streamlit
 numpy
 pandas
 matplotlib
-nglview 
 ipywidgets
 py3Dmol
+stmol
+ipython_genutils
+ipyspeck
