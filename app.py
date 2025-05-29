@@ -1,8 +1,8 @@
 # app.py
-import streamlit as st
-from stmol import showmol
-import py3Dmol
-from helper_functions import (
+#import streamlit as st
+#from stmol import showmol
+i#mport py3Dmol
+#from helper_functions import (
     read_xyz,
     write_xyz,
     replace_atom_with_group,
