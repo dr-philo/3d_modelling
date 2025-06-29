@@ -153,7 +153,8 @@ if 'atomic_symbols' in st.session_state:
             st.session_state['atomic_symbols'] = new_atomic_symbols
             st.session_state['atomic_coordinates'] = new_atomic_coordinates
             st.rerun()
-
+ view_mod.zoomTo()
+            showmol(view_mod, height=400, width=800)
     # Create a download button for the displayed structure
     st.download_button(
         label="Download Current XYZ File",
