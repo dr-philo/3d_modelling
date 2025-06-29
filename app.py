@@ -11,14 +11,26 @@ from helper_functions import (
     create_xyz_string,
 )
 
-st.title("Structural Modification of Molecules")
+st.set_page_config(layout="wide")
+st.title("Structural Modification of Molecules with Hybridization Rules")
 
 # File upload in the main area
 uploaded_file = st.file_uploader("Upload XYZ File", type="xyz")
 
 if uploaded_file is not None:
     # Read the XYZ file
-    atomic_symbols, atomic_coordinates = read_xyz(uploaded_file)
+    try:
+        atomic_symbols, atomic_coordinates = read_xyz(uploaded_file)
+        st.session_state['atomic_symbols'] = atomic_symbols
+        st.session_state['atomic_coordinates'] = atomic_coordinates
+    except ValueError as e:
+        st.error(e)
+        st.stop()
+
+
+if 'atomic_symbols' in st.session_state:
+    atomic_symbols = st.session_state['atomic_symbols']
+    atomic_coordinates = st.session_state['atomic_coordinates']
 
     # Display original structure with annotations
     st.subheader("Original Molecule Structure")
@@ -36,9 +48,10 @@ if uploaded_file is not None:
             f"{i+1}",
             {
                 "position": {"x": coords[0], "y": coords[1], "z": coords[2]},
-                "fontSize": 14,
+                "fontSize": 12,
                 "fontColor": "black",
-                "backgroundOpacity": 0.2,
+                "backgroundColor": "white",
+                "backgroundOpacity": 0.5,
             },
         )
 
@@ -53,18 +66,14 @@ if uploaded_file is not None:
         "Alkyl Groups": {
             "Methyl (-CH3)": ["C", "H", "H", "H"],
             "Ethyl (-CH2CH3)": ["C", "H", "H", "C", "H", "H", "H"],
-            "Propyl (-CH2CH2CH3)": ["C", "H", "H", "C", "H", "H", "C", "H", "H", "H"],
         },
         "Oxygen-containing Groups": {
             "Hydroxyl (-OH)": ["O", "H"],
             "Carbonyl (=O)": ["O"],
             "Carboxyl (-COOH)": ["C", "O", "O", "H"],
-            "Ether (-OR)": ["O", "C", "H", "H", "H"],
-            "Ester (-COOR)": ["C", "O", "O", "C", "H", "H", "H"],
         },
         "Nitrogen-containing Groups": {
             "Amino (-NH2)": ["N", "H", "H"],
-            "Amide (-CONH2)": ["C", "O", "N", "H", "H"],
             "Nitro (-NO2)": ["N", "O", "O"],
         },
         "Halogen Groups": {
@@ -75,114 +84,113 @@ if uploaded_file is not None:
         },
         "Sulfur-containing Groups": {
             "Thiol (-SH)": ["S", "H"],
-            "Sulfone (-SO2-)": ["S", "O", "O"],
-        },
-        "Phosphorus-containing Groups": {
-            "Phosphate (-PO4)": ["P", "O", "O", "O", "O"],
         },
     }
 
-    modifications = []
-    add_another = True
-    modification_count = 0
+    # Using session state to manage modifications
+    if 'modifications' not in st.session_state:
+        st.session_state.modifications = []
 
-    while add_another:
-        st.sidebar.subheader(f"Modification {modification_count + 1}")
+    def add_modification():
+        st.session_state.modifications.append({'type': 'Addition', 'atoms': [], 'group_cat': 'Alkyl Groups', 'group_sel': 'Methyl (-CH3)'})
 
-        # Choose modification type
+    st.sidebar.button("Add another modification", on_click=add_modification)
+
+    # Store modifications to apply
+    mods_to_apply = []
+    indices_to_delete = []
+
+    for i, mod in enumerate(st.session_state.modifications):
+        st.sidebar.subheader(f"Modification {i + 1}")
+        
         mod_type = st.sidebar.radio(
             "Modification type:",
-            ["Substitution", "Addition", "Deletion"],
-            key=f"mod_type_{modification_count}",
+            ["Addition", "Substitution", "Deletion"],
+            index=["Addition", "Substitution", "Deletion"].index(mod.get('type', 'Addition')),
+            key=f"mod_type_{i}",
         )
 
-        # Atom selection
         atom_positions = list(range(1, len(atomic_symbols) + 1))
+        
         selected_positions = st.sidebar.multiselect(
             f"Select atom(s) to modify:",
             options=atom_positions,
-            format_func=lambda x: f"{atomic_symbols[x-1]} atom at position {x}",
-            key=f"atoms_{modification_count}",
+            format_func=lambda x: f"{atomic_symbols[x-1]}{x}",
+            key=f"atoms_{i}",
         )
-
-        # Group selection (only for Substitution and Addition)
+        
+        group = None
         if mod_type in ["Substitution", "Addition"]:
             group_category = st.sidebar.selectbox(
                 "Select functional group category:",
                 options=list(groups.keys()),
-                key=f"group_category_{modification_count}",
+                key=f"group_category_{i}",
             )
             selected_group = st.sidebar.selectbox(
                 f"Select group for modification:",
                 options=list(groups[group_category].keys()),
-                key=f"group_{modification_count}",
+                key=f"group_{i}",
             )
             group = groups[group_category][selected_group]
-        else:
-            group = None
+        
+        for pos in selected_positions:
+            # Adjust for 0-based indexing
+            atom_index = pos - 1
+            if mod_type == "Deletion":
+                 indices_to_delete.append(atom_index)
+            else:
+                mods_to_apply.append((mod_type, atom_index, group))
 
-        for position in selected_positions:
-            modifications.append((mod_type, position - 1, group))
-
-        add_another = st.sidebar.checkbox(
-            "Add another modification", key=f"add_{modification_count}"
-        )
-        modification_count += 1
 
     if st.sidebar.button("Perform Modifications"):
-        # Perform modifications
+        # Apply additions and substitutions first
         new_atomic_symbols = atomic_symbols.copy()
         new_atomic_coordinates = atomic_coordinates.copy()
 
-        # Sort modifications to handle deletions last
-        modifications.sort(key=lambda x: (x[0] != "Deletion", x[1]), reverse=True)
+        # Sort modifications to handle indices correctly
+        mods_to_apply.sort(key=lambda x: x[1], reverse=True)
 
-        for mod_type, position, group in modifications:
+        for mod_type, position, group_data in mods_to_apply:
             if mod_type == "Substitution":
                 new_atomic_symbols, new_atomic_coordinates = replace_atom_with_group(
                     new_atomic_symbols,
                     new_atomic_coordinates,
                     position,
-                    group,
+                    group_data,
                 )
             elif mod_type == "Addition":
                 new_atomic_symbols, new_atomic_coordinates = add_group_to_atom(
                     new_atomic_symbols,
                     new_atomic_coordinates,
                     position,
-                    group,
+                    group_data,
                 )
-            elif mod_type == "Deletion":
-                new_atomic_symbols, new_atomic_coordinates = delete_atoms(
-                    new_atomic_symbols, new_atomic_coordinates, [position]
-                )
+        
+        # Apply deletions after all additions/substitutions are done
+        if indices_to_delete:
+            new_atomic_symbols, new_atomic_coordinates = delete_atoms(
+                new_atomic_symbols, new_atomic_coordinates, indices_to_delete
+            )
 
-        # Display modified structure with annotations
+        # Display modified structure
         st.subheader("Modified Molecule Structure")
-        xyz_string = create_xyz_string(new_atomic_symbols, new_atomic_coordinates)
+        xyz_string_mod = create_xyz_string(new_atomic_symbols, new_atomic_coordinates)
 
-        view = py3Dmol.view(width=800, height=400)
-        view.addModel(xyz_string, "xyz")
-        view.setStyle({
-        'sphere': {'radius': 0.3},  
-        'stick': {'radius': 0.15}   
-    })
-        # Add labels to atoms
-        for i, (symbol, coords) in enumerate(
-            zip(new_atomic_symbols, new_atomic_coordinates)
-        ):
-            view.addLabel(
+        view_mod = py3Dmol.view(width=800, height=400)
+        view_mod.addModel(xyz_string_mod, "xyz")
+        view_mod.setStyle({'sphere': {'radius': 0.3}, 'stick': {'radius': 0.15}})
+        
+        for i, (symbol, coords) in enumerate(zip(new_atomic_symbols, new_atomic_coordinates)):
+            view_mod.addLabel(
                 f"{i+1}",
                 {
                     "position": {"x": coords[0], "y": coords[1], "z": coords[2]},
-                    "fontSize": 14,
-                    "fontColor": "black",
-                    "backgroundOpacity": 0.2,
+                    "fontSize": 12, "fontColor": "black", "backgroundColor": "white", "backgroundOpacity": 0.5
                 },
             )
 
-        view.zoomTo()
-        showmol(view, height=400, width=800)
+        view_mod.zoomTo()
+        showmol(view_mod, height=400, width=800)
 
         # Generate modified XYZ file for download
         modified_xyz = write_xyz(new_atomic_symbols, new_atomic_coordinates)
