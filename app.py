@@ -164,10 +164,10 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
     view_mod.zoomTo()
     showmol(view_mod, height=400, width=800)
 
-            modified_xyz = write_xyz(new_atomic_symbols, new_atomic_coordinates)
-            st.download_button(
-                label="Download Modified XYZ File",
-                data=modified_xyz,
-                file_name="modified_molecule.xyz",
-                mime="text/plain",
+    modified_xyz = write_xyz(new_atomic_symbols, new_atomic_coordinates)
+    st.download_button(
+        label="Download Modified XYZ File",
+        data=modified_xyz,
+        file_name="modified_molecule.xyz",
+        mime="text/plain",
             )
