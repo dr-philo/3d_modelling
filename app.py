@@ -161,5 +161,13 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
     xyz_string_mod = create_xyz_string(mod_symbols, mod_coords)
 
     # Display 3D structure
-    view_mod = py3Dmol.view(width=800, height=400)
-    view_
+     view_mod.zoomTo()
+            showmol(view_mod, height=400, width=800)
+
+            modified_xyz = write_xyz(new_atomic_symbols, new_atomic_coordinates)
+            st.download_button(
+                label="Download Modified XYZ File",
+                data=modified_xyz,
+                file_name="modified_molecule.xyz",
+                mime="text/plain",
+            )
