@@ -154,7 +154,7 @@ if 'atomic_symbols' in st.session_state:
             st.session_state['atomic_coordinates'] = new_atomic_coordinates
     
     view_mod.zoomTo()
-        showmol(view_mod, height=400, width=800)
+    showmol(view_mod, height=400, width=800)
 
         # Generate modified XYZ file for download
         modified_xyz = write_xyz(new_atomic_symbols, new_atomic_coordinates)
