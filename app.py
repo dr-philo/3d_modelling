@@ -15,56 +15,58 @@ from helper_functions import (
 st.set_page_config(layout="wide")
 st.title("3D Molecular Structure Modifier")
 
-# --- High-Quality 3D Functional Group Templates (Generated with RDKit) ---
+# --- Meticulously Corrected 3D Functional Group Templates ---
+# These templates are built from first principles with ideal geometries
+# to ensure correct structure and bonding upon modification.
 groups = {
     "Alkyl Groups": {
         "Methyl (-CH3)": {
             "symbols": ['C', 'H', 'H', 'H'],
             "coords": np.array([
-                [ 0.0000,  0.0000,  0.0000], # C (anchor)
-                [ 0.6310,  0.8924,  0.0000], # H
-                [-0.6310,  0.8924,  0.0000], # H
-                [ 0.0000, -0.0000,  1.0930]  # H
+                [ 0.000,  0.000,  0.000], # C (anchor)
+                [-0.363,  1.028,  0.000], # H1
+                [-0.363, -0.514,  0.890], # H2
+                [-0.363, -0.514, -0.890], # H3
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([0.0000, -1.5000, -0.0000]) # Points towards molecule
+            "attachment_vector": np.array([1.0, 0.0, 0.0])
         },
         "Ethyl (-CH2CH3)": {
             "symbols": ['C', 'C', 'H', 'H', 'H', 'H', 'H'],
             "coords": np.array([
-                [ 0.0000,  0.0000,  0.0000], # C1 (anchor, -CH2-)
-                [-1.5270,  0.0000,  0.0000], # C2 (-CH3)
-                [ 0.4431, -0.5361, -0.8718], # H on C1
-                [ 0.4431,  1.0543, -0.1191], # H on C1
-                [-1.9642, -0.5130,  0.8800], # H on C2
-                [-1.9642,  1.0425,  0.1082], # H on C2
-                [-1.6338, -0.5295, -0.8882]  # H on C2
+                [ 0.000,  0.000,  0.000], # C1 (anchor, -CH2-)
+                [ 1.540,  0.000,  0.000], # C2 (-CH3)
+                [-0.360, -0.515,  0.892], # H on C1
+                [-0.360, -0.515, -0.892], # H on C1
+                [ 1.900,  1.030,  0.000], # H on C2
+                [ 1.900, -0.515,  0.892], # H on C2
+                [ 1.900, -0.515, -0.892], # H on C2
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([1.2821, -0.1633, 0.7710]) # Points towards molecule
+            "attachment_vector": np.array([-0.360, 1.030, 0.000])
         },
     },
     "Oxygen-containing Groups": {
         "Hydroxyl (-OH)": {
             "symbols": ['O', 'H'],
             "coords": np.array([
-                [ 0.0000, 0.0000, 0.0000], # O (anchor)
-                [-0.3752, 0.8871, 0.0000]  # H
+                [0.000,  0.000, 0.000], # O (anchor)
+                [0.960,  0.000, 0.000], # H
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([1.3621, -0.1551, 0.0000])
+            "attachment_vector": np.array([-1.0, 0.0, 0.0])
         },
     },
     "Nitrogen-containing Groups": {
         "Amino (-NH2)": {
             "symbols": ['N', 'H', 'H'],
             "coords": np.array([
-                [ 0.0000,  0.0000,  0.0000], # N (anchor)
-                [ 0.5988,  0.8163,  0.0000], # H
-                [-0.5988,  0.8163,  0.0000]  # H
+                [0.000,  0.000,  0.000], # N (anchor)
+                [1.010,  0.000,  0.000], # H1
+                [-0.337, 0.952,  0.000], # H2
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([-0.0000, -1.4582, 0.0000])
+            "attachment_vector": np.array([-0.337, -0.476, 0.824])
         },
     },
     "Halogen Groups": {
@@ -73,24 +75,34 @@ groups = {
     },
 }
 
-# --- Streamlit UI ---
+# --- Streamlit UI and State Management ---
+
+# Callback function to handle accepting the modification
+def accept_and_continue():
+    mod_data = st.session_state.modified_molecule
+    if mod_data:
+        st.session_state.atomic_symbols = mod_data["symbols"]
+        st.session_state.atomic_coordinates = mod_data["coords"]
+        st.session_state.modified_molecule = None
+
+# --- Main App Logic ---
 
 uploaded_file = st.file_uploader("Upload Molecule (XYZ Format)", type="xyz")
 
 if uploaded_file is not None:
     try:
         atomic_symbols, atomic_coordinates = read_xyz(uploaded_file)
-        # Initialize session state for both current and modified molecules
-        st.session_state['atomic_symbols'] = atomic_symbols
-        st.session_state['atomic_coordinates'] = atomic_coordinates
+        # Initialize session state on new file upload
+        st.session_state.atomic_symbols = atomic_symbols
+        st.session_state.atomic_coordinates = atomic_coordinates
         st.session_state.modified_molecule = None # Clear any previous modifications
     except ValueError as e:
         st.error(f"Error reading XYZ file: {e}")
         st.stop()
 
 if 'atomic_symbols' in st.session_state:
-    atomic_symbols = st.session_state['atomic_symbols']
-    atomic_coordinates = st.session_state['atomic_coordinates']
+    atomic_symbols = st.session_state.atomic_symbols
+    atomic_coordinates = st.session_state.atomic_coordinates
 
     st.subheader("Current Molecule Structure")
     xyz_string = create_xyz_string(atomic_symbols, atomic_coordinates)
@@ -171,7 +183,7 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
     view_mod.zoomTo()
     showmol(view_mod, height=400, width=800)
 
-    # Create two columns for the action buttons below the modified structure
+    # --- Action Buttons for Modified Structure ---
     col1, col2 = st.columns(2)
     with col1:
         st.download_button(
@@ -179,10 +191,5 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
             file_name="modified_molecule.xyz", mime="text/plain", use_container_width=True
         )
     with col2:
-        if st.button("Accept and Continue Editing", type="primary", use_container_width=True):
-            # Promote the modified structure to the main "current" state
-            st.session_state.atomic_symbols = mod_symbols
-            st.session_state.atomic_coordinates = mod_coords
-            # Clear the temporary modified state
-            st.session_state.modified_molecule = None
-            st.rerun()
+        st.button("Accept and Continue Editing", type="primary", use_container_width=True,
+                  on_click=accept_and_continue)
