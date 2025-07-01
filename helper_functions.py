@@ -63,13 +63,34 @@ def _get_neighbors(atomic_symbols, atomic_coordinates, atom_index):
 def _rotation_matrix_from_vectors(vec1, vec2):
     """
     Finds the rotation matrix that aligns vec1 to vec2.
+    This version correctly handles the 180-degree case to avoid inversion.
     """
-    a, b = (vec1 / np.linalg.norm(vec1)).reshape(3), (vec2 / np.linalg.norm(vec2)).reshape(3)
-    v = np.cross(a, b)
+    a = vec1 / np.linalg.norm(vec1)
+    b = vec2 / np.linalg.norm(vec2)
     c = np.dot(a, b)
+
+    # If vectors are already aligned, return identity
+    if np.isclose(c, 1.0):
+        return np.identity(3)
+
+    # If vectors are anti-parallel (180 degrees apart)
+    if np.isclose(c, -1.0):
+        # Find a perpendicular axis to rotate around
+        p_axis = np.cross(a, np.array([1.0, 0.0, 0.0]))
+        # If 'a' is parallel to the x-axis, use the y-axis instead
+        if np.linalg.norm(p_axis) < 1e-6:
+            p_axis = np.cross(a, np.array([0.0, 1.0, 0.0]))
+        p_axis /= np.linalg.norm(p_axis)
+        
+        # Rodrigues' formula for a 180-degree rotation
+        kmat = np.array([[0, -p_axis[2], p_axis[1]], 
+                           [p_axis[2], 0, -p_axis[0]], 
+                           [-p_axis[1], p_axis[0], 0]])
+        return np.identity(3) + 2 * kmat.dot(kmat)
+
+    # Standard case for all other angles
+    v = np.cross(a, b)
     s = np.linalg.norm(v)
-    if s < 1e-8:
-        return np.identity(3) if c > 0 else -np.identity(3)
     kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     return np.identity(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
 
