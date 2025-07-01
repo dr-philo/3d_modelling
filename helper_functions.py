@@ -109,25 +109,20 @@ def _add_or_replace(atomic_symbols, atomic_coordinates, atom_index, group_templa
         bond_length = COVALENT_RADII.get(atomic_symbols[atom_index], 0.77) + COVALENT_RADII.get(gt_anchor_symbol, 0.77)
         anchor_position = base_atom_coords + target_bond_vector * bond_length
     
-    else: # 'replace' - THIS SECTION IS NOW CORRECTED
+    else: # 'replace'
         if not neighbor_indices:
             raise ValueError("Cannot replace an atom with no bonded neighbors to attach to.")
         
-        # Assume the new group attaches to the first neighbor of the atom being replaced.
         attach_to_atom_index = neighbor_indices[0]
         attach_to_atom_pos = atomic_coordinates[attach_to_atom_index]
         attach_to_atom_symbol = atomic_symbols[attach_to_atom_index]
 
-        # The direction of the new bond is from the atom we attach to, towards the atom being replaced.
         target_bond_vector = base_atom_coords - attach_to_atom_pos
         norm = np.linalg.norm(target_bond_vector)
         if norm > 1e-6:
             target_bond_vector /= norm
 
-        # Calculate the proper bond length for the new bond (e.g., C-C instead of the old C-H)
         new_bond_length = COVALENT_RADII.get(attach_to_atom_symbol, 0.77) + COVALENT_RADII.get(gt_anchor_symbol, 0.77)
-        
-        # The new anchor is placed at the correct bond length from the atom it's attaching to.
         anchor_position = attach_to_atom_pos + target_bond_vector * new_bond_length
 
     rotation_matrix = _rotation_matrix_from_vectors(gt_attach_vec, target_bond_vector)
