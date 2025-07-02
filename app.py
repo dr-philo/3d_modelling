@@ -16,8 +16,8 @@ st.set_page_config(layout="wide")
 st.title("3D Molecular Structure Modifier")
 
 # --- Meticulously Corrected 3D Functional Group Templates ---
-# These templates are built from first principles with ideal geometries
-# to ensure correct structure and bonding upon modification.
+# These templates are built from first principles using ideal sp3 hybridization
+# angles (109.47°) and standard bond lengths to ensure correct geometry.
 groups = {
     "Alkyl Groups": {
         "Methyl (-CH3)": {
@@ -34,16 +34,18 @@ groups = {
         "Ethyl (-CH2CH3)": {
             "symbols": ['C', 'C', 'H', 'H', 'H', 'H', 'H'],
             "coords": np.array([
-                [ 0.000,  0.000,  0.000], # C1 (anchor, -CH2-)
-                [ 1.540,  0.000,  0.000], # C2 (-CH3)
-                [-0.360, -0.515,  0.892], # H on C1
-                [-0.360, -0.515, -0.892], # H on C1
-                [ 1.900,  1.030,  0.000], # H on C2
-                [ 1.900, -0.515,  0.892], # H on C2
-                [ 1.900, -0.515, -0.892], # H on C2
+                # Staggered conformation with C1 as anchor
+                [ 0.000,  0.000,  0.000], # C1 (anchor)
+                [ 1.540,  0.000,  0.000], # C2
+                [-0.363, -0.514,  0.890], # H on C1
+                [-0.363, -0.514, -0.890], # H on C1
+                [ 1.903,  0.514,  0.890], # H on C2
+                [ 1.903,  0.514, -0.890], # H on C2
+                [ 1.903, -1.028,  0.000], # H on C2
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([-0.360, 1.030, 0.000])
+            # Attachment vector derived from the 4th tetrahedral position on C1
+            "attachment_vector": np.array([-0.363, 1.028, 0.000])
         },
     },
     "Oxygen-containing Groups": {
