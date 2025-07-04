@@ -128,4 +128,62 @@ if 'atomic_symbols' in st.session_state:
         selected_group_name = st.sidebar.selectbox("Select Group:", list(groups[group_category].keys()))
         group_data = groups[group_category][selected_group_name]
     
-    if st.sidebar.button("Perform Modification", use_container_width=True,
+    if st.sidebar.button("Perform Modification", use_container_width=True, type="primary"):
+        if not selected_positions:
+            st.sidebar.warning("Please select at least one atom to modify.")
+        else:
+            new_atomic_symbols = atomic_symbols.copy()
+            new_atomic_coordinates = atomic_coordinates.copy()
+            try:
+                if mod_type == "Deletion":
+                    new_atomic_symbols, new_atomic_coordinates = delete_atoms(
+                        new_atomic_symbols, new_atomic_coordinates, [p - 1 for p in selected_positions]
+                    )
+                else:
+                    for pos in sorted(selected_positions, reverse=True):
+                        atom_index = pos - 1
+                        if mod_type == "Substitution":
+                            new_atomic_symbols, new_atomic_coordinates = replace_atom_with_group(
+                                new_atomic_symbols, new_atomic_coordinates, atom_index, group_data
+                            )
+                        elif mod_type == "Addition":
+                            new_atomic_symbols, new_atomic_coordinates = add_group_to_atom(
+                                new_atomic_symbols, new_atomic_coordinates, atom_index, group_data
+                            )
+                st.session_state.modified_molecule = {
+                    "symbols": new_atomic_symbols, "coords": new_atomic_coordinates
+                }
+            except Exception as e:
+                st.error(f"Failed to perform modification: {e}")
+                st.session_state.modified_molecule = None
+
+# --- Display Modified Structure Section (if it exists) ---
+if 'modified_molecule' in st.session_state and st.session_state.modified_molecule:
+    st.markdown("---")
+    st.subheader("Modified Molecule Structure")
+
+    mod_symbols = st.session_state.modified_molecule["symbols"]
+    mod_coords = st.session_state.modified_molecule["coords"]
+    
+    xyz_string_mod = create_xyz_string(mod_symbols, mod_coords)
+
+    view_mod = py3Dmol.view(width=800, height=400)
+    view_mod.addModel(xyz_string_mod, "xyz")
+    view_mod.setStyle({'sphere': {'radius': 0.3}, 'stick': {'radius': 0.15}})
+    for i, (symbol, coords) in enumerate(zip(mod_symbols, mod_coords)):
+        view_mod.addLabel(f"{i+1}", {"position": {"x": coords[0], "y": coords[1], "z": coords[2]},
+                                "fontSize": 12, "fontColor": "black", "backgroundColor": "white",
+                                "backgroundOpacity": 0.6})
+    view_mod.zoomTo()
+    showmol(view_mod, height=400, width=800)
+
+    # --- Action Buttons for Modified Structure ---
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            label="Download Modified File", data=xyz_string_mod,
+            file_name="modified_molecule.xyz", mime="text/plain", use_container_width=True
+        )
+    with col2:
+        st.button("Accept and Continue Editing", type="primary", use_container_width=True,
+                  on_click=accept_and_continue)
