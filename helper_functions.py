@@ -68,11 +68,11 @@ def _rotation_matrix_from_vectors(vec1, vec2):
     a = vec1 / np.linalg.norm(vec1)
     b = vec2 / np.linalg.norm(vec2)
     c = np.dot(a, b)
-
+    
     # If vectors are already aligned, return identity
     if np.isclose(c, 1.0):
         return np.identity(3)
-
+        
     # If vectors are anti-parallel (180 degrees apart)
     if np.isclose(c, -1.0):
         # Find a perpendicular axis to rotate around
@@ -81,13 +81,12 @@ def _rotation_matrix_from_vectors(vec1, vec2):
         if np.linalg.norm(p_axis) < 1e-6:
             p_axis = np.cross(a, np.array([0.0, 1.0, 0.0]))
         p_axis /= np.linalg.norm(p_axis)
-        
         # Rodrigues' formula for a 180-degree rotation
         kmat = np.array([[0, -p_axis[2], p_axis[1]], 
-                           [p_axis[2], 0, -p_axis[0]], 
-                           [-p_axis[1], p_axis[0], 0]])
+                        [p_axis[2], 0, -p_axis[0]], 
+                        [-p_axis[1], p_axis[0], 0]])
         return np.identity(3) + 2 * kmat.dot(kmat)
-
+    
     # Standard case for all other angles
     v = np.cross(a, b)
     s = np.linalg.norm(v)
@@ -100,6 +99,7 @@ def _calculate_attachment_vector(base_atom_coords, neighbor_coords_list):
     """
     if not neighbor_coords_list:
         return np.array([1.0, 0.0, 0.0])
+    
     sum_of_vectors = np.sum([np.array(nc) - base_atom_coords for nc in neighbor_coords_list], axis=0)
     direction_vector = -sum_of_vectors
     norm = np.linalg.norm(direction_vector)
@@ -129,20 +129,16 @@ def _add_or_replace(atomic_symbols, atomic_coordinates, atom_index, group_templa
         target_bond_vector = _calculate_attachment_vector(base_atom_coords, neighbor_coords)
         bond_length = COVALENT_RADII.get(atomic_symbols[atom_index], 0.77) + COVALENT_RADII.get(gt_anchor_symbol, 0.77)
         anchor_position = base_atom_coords + target_bond_vector * bond_length
-    
     else: # 'replace'
         if not neighbor_indices:
             raise ValueError("Cannot replace an atom with no bonded neighbors to attach to.")
-        
         attach_to_atom_index = neighbor_indices[0]
         attach_to_atom_pos = atomic_coordinates[attach_to_atom_index]
         attach_to_atom_symbol = atomic_symbols[attach_to_atom_index]
-
         target_bond_vector = base_atom_coords - attach_to_atom_pos
         norm = np.linalg.norm(target_bond_vector)
         if norm > 1e-6:
             target_bond_vector /= norm
-
         new_bond_length = COVALENT_RADII.get(attach_to_atom_symbol, 0.77) + COVALENT_RADII.get(gt_anchor_symbol, 0.77)
         anchor_position = attach_to_atom_pos + target_bond_vector * new_bond_length
 
