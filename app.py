@@ -49,7 +49,7 @@ groups = {
             "symbols": ['O', 'H'],
             "coords": np.array([
                 [ 0.000,  0.000,  0.000], # O (anchor)
-                [-0.240,  0.930,  0.000], # H, positioned to create a 104.5 degree angle
+                [-0.320,  0.905,  0.000], # H, positioned to create a 109.5 degree angle
             ]),
             "anchor_index": 0,
             "attachment_vector": np.array([1.0, 0.0, 0.0]) # Inward vector for the R-O bond
