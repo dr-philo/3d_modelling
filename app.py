@@ -15,33 +15,35 @@ from helper_functions import (
 st.set_page_config(layout="wide")
 st.title("3D Molecular Structure Modifier")
 
-# --- Meticulously Corrected 3D Functional Group Templates ---
+# --- Corrected 3D Functional Group Templates ---
+# The attachment_vectors have been inverted to ensure correct orientation.
 groups = {
     "Alkyl Groups": {
         "Methyl (-CH3)": {
             "symbols": ['C', 'H', 'H', 'H'],
             "coords": np.array([
-                [ 0.000,  0.000,  0.000],  # C (anchor)
-                [ 1.090,  0.000,  0.000],  # H1
-                [-0.363,  1.028,  0.000],  # H2
-                [-0.363, -0.514, -0.890],  # H3
+                [ 0.000,  0.000,  0.000], # C (anchor)
+                [-0.363,  1.028,  0.000], # H1
+                [-0.363, -0.514,  0.890], # H2
+                [-0.363, -0.514, -0.890], # H3
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([-0.363, -0.514, 0.890])  # Fourth tetrahedral position
+            "attachment_vector": np.array([-1.0, 0.0, 0.0]) # Corrected: Points inward
         },
         "Ethyl (-CH2CH3)": {
             "symbols": ['C', 'C', 'H', 'H', 'H', 'H', 'H'],
             "coords": np.array([
-                [ 0.000,  0.000,  0.000],  # C1 (anchor)
-                [ 1.540,  0.000,  0.000],  # C2
-                [ 0.363,  1.028,  0.000],  # H1 on C1 (pointing outward)
-                [ 0.363, -0.514,  0.890],  # H2 on C1 (pointing outward)
-                [ 1.903,  1.028,  0.000],  # H1 on C2
-                [ 1.903, -0.514,  0.890],  # H2 on C2
-                [ 1.903, -0.514, -0.890],  # H3 on C2
+                # Staggered conformation with C1 as anchor
+                [ 0.000,  0.000,  0.000], # C1 (anchor)
+                [ 1.540,  0.000,  0.000], # C2
+                [-0.363, -0.514,  0.890], # H on C1
+                [-0.363, -0.514, -0.890], # H on C1
+                [ 1.903,  0.514,  0.890], # H on C2
+                [ 1.903,  0.514, -0.890], # H on C2
+                [ 1.903, -1.028,  0.000], # H on C2
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([0.363, -0.514, -0.890])  # Fourth tetrahedral position
+            "attachment_vector": np.array([0.363, -1.028, 0.000]) # Corrected: Points inward
         },
     },
     "Oxygen-containing Groups": {
@@ -52,7 +54,7 @@ groups = {
                 [0.960,  0.000, 0.000], # H
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([-1.0, 0.0, 0.0])
+            "attachment_vector": np.array([1.0, 0.0, 0.0]) # Corrected: Points inward
         },
     },
     "Nitrogen-containing Groups": {
@@ -64,19 +66,19 @@ groups = {
                 [-0.337, 0.952,  0.000], # H2
             ]),
             "anchor_index": 0,
-            "attachment_vector": np.array([-0.337, -0.476, 0.824])
+            "attachment_vector": np.array([0.337, 0.476, -0.824]) # Corrected: Points inward
         },
     },
     "Halogen Groups": {
-        "Fluoro (-F)": {"symbols": ["F"]},
-        "Chloro (-Cl)": {"symbols": ["Cl"]},
-        "Bromo (-Br)": {"symbols": ["Br"]},
-        "Iodo (-I)": {"symbols": ["I"]},
+        "Fluoro (-F)": {"symbols": ["F"]}, "Chloro (-Cl)": {"symbols": ["Cl"]},
+        "Bromo (-Br)": {"symbols": ["Br"]}, "Iodo (-I)": {"symbols": ["I"]},
     },
 }
 
 # --- Streamlit UI and State Management ---
+
 def accept_and_continue():
+    """Callback function to accept the modification and update the main state."""
     mod_data = st.session_state.modified_molecule
     if mod_data:
         st.session_state.atomic_symbols = mod_data["symbols"]
@@ -84,6 +86,7 @@ def accept_and_continue():
         st.session_state.modified_molecule = None
 
 # --- Main App Logic ---
+
 uploaded_file = st.file_uploader("Upload Molecule (XYZ Format)", type="xyz")
 
 if uploaded_file is not None:
@@ -99,11 +102,10 @@ if uploaded_file is not None:
 if 'atomic_symbols' in st.session_state:
     atomic_symbols = st.session_state.atomic_symbols
     atomic_coordinates = st.session_state.atomic_coordinates
-    
+
     st.subheader("Current Molecule Structure")
     xyz_string = create_xyz_string(atomic_symbols, atomic_coordinates)
-    
-    # Display 3D structure
+
     view = py3Dmol.view(width=800, height=400)
     view.addModel(xyz_string, "xyz")
     view.setStyle({'sphere': {'radius': 0.3}, 'stick': {'radius': 0.15}})
@@ -117,19 +119,17 @@ if 'atomic_symbols' in st.session_state:
     # --- Sidebar Controls ---
     st.sidebar.header("Modification Controls")
     mod_type = st.sidebar.radio("Modification type:", ["Addition", "Substitution", "Deletion"], horizontal=True)
-    
     atom_positions = list(range(1, len(atomic_symbols) + 1))
     selected_positions = st.sidebar.multiselect(
         f"Select atom(s) to modify:", options=atom_positions,
         format_func=lambda x: f"Atom {x}: {atomic_symbols[x-1]}"
     )
-
     group_data = None
     if mod_type in ["Substitution", "Addition"]:
         group_category = st.sidebar.selectbox("Functional Group Category:", list(groups.keys()))
         selected_group_name = st.sidebar.selectbox("Select Group:", list(groups[group_category].keys()))
         group_data = groups[group_category][selected_group_name]
-
+    
     if st.sidebar.button("Perform Modification", use_container_width=True, type="primary"):
         if not selected_positions:
             st.sidebar.warning("Please select at least one atom to modify.")
@@ -152,10 +152,8 @@ if 'atomic_symbols' in st.session_state:
                             new_atomic_symbols, new_atomic_coordinates = add_group_to_atom(
                                 new_atomic_symbols, new_atomic_coordinates, atom_index, group_data
                             )
-                
                 st.session_state.modified_molecule = {
-                    "symbols": new_atomic_symbols,
-                    "coords": new_atomic_coordinates
+                    "symbols": new_atomic_symbols, "coords": new_atomic_coordinates
                 }
             except Exception as e:
                 st.error(f"Failed to perform modification: {e}")
@@ -165,12 +163,12 @@ if 'atomic_symbols' in st.session_state:
 if 'modified_molecule' in st.session_state and st.session_state.modified_molecule:
     st.markdown("---")
     st.subheader("Modified Molecule Structure")
-    
+
     mod_symbols = st.session_state.modified_molecule["symbols"]
     mod_coords = st.session_state.modified_molecule["coords"]
-    xyz_string_mod = create_xyz_string(mod_symbols, mod_coords)
     
-    # Display 3D structure
+    xyz_string_mod = create_xyz_string(mod_symbols, mod_coords)
+
     view_mod = py3Dmol.view(width=800, height=400)
     view_mod.addModel(xyz_string_mod, "xyz")
     view_mod.setStyle({'sphere': {'radius': 0.3}, 'stick': {'radius': 0.15}})
@@ -185,14 +183,9 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
     col1, col2 = st.columns(2)
     with col1:
         st.download_button(
-            label="Download Modified File",
-            data=xyz_string_mod,
-            file_name="modified_molecule.xyz",
-            mime="text/plain",
-            use_container_width=True
+            label="Download Modified File", data=xyz_string_mod,
+            file_name="modified_molecule.xyz", mime="text/plain", use_container_width=True
         )
     with col2:
-        st.button("Accept and Continue Editing",
-                  type="primary",
-                  use_container_width=True,
+        st.button("Accept and Continue Editing", type="primary", use_container_width=True,
                   on_click=accept_and_continue)
