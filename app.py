@@ -184,6 +184,4 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
             label="Download Modified File", data=xyz_string_mod,
             file_name="modified_molecule.xyz", mime="text/plain", use_container_width=True
         )
-    with col2:
-        st.button("Accept and Continue Editing", type="primary", use_container_width=True,
-                  on_click=accept_and_continue)
+    
