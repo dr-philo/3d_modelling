@@ -5,7 +5,7 @@ import py3Dmol
 import numpy as np
 from helper_functions import (
     read_xyz,
-    write_xyz,
+    # write_xyz is not directly used in app.py, can be removed from import
     replace_atom_with_group,
     add_group_to_atom,
     delete_atoms,
@@ -49,7 +49,7 @@ groups = {
             "symbols": ['O', 'H'],
             "coords": np.array([
                 [ 0.000,  0.000,  0.000], # O (anchor)
-                [-0.320,  0.905,  0.000], # H, positioned to create a 109.5 degree angle
+                [-0.240,  0.930,  0.000], # H, positioned to create a 104.5 degree angle
             ]),
             "anchor_index": 0,
             "attachment_vector": np.array([1.0, 0.0, 0.0]) # Inward vector for the R-O bond
@@ -114,7 +114,6 @@ if 'atomic_symbols' in st.session_state:
     view.zoomTo()
     showmol(view, height=400, width=800)
 
-    # --- Sidebar Controls ---
     st.sidebar.header("Modification Controls")
     mod_type = st.sidebar.radio("Modification type:", ["Addition", "Substitution", "Deletion"], horizontal=True)
     atom_positions = list(range(1, len(atomic_symbols) + 1))
@@ -157,7 +156,6 @@ if 'atomic_symbols' in st.session_state:
                 st.error(f"Failed to perform modification: {e}")
                 st.session_state.modified_molecule = None
 
-# --- Display Modified Structure Section (if it exists) ---
 if 'modified_molecule' in st.session_state and st.session_state.modified_molecule:
     st.markdown("---")
     st.subheader("Modified Molecule Structure")
@@ -177,7 +175,6 @@ if 'modified_molecule' in st.session_state and st.session_state.modified_molecul
     view_mod.zoomTo()
     showmol(view_mod, height=400, width=800)
 
-    # --- Action Buttons for Modified Structure ---
     col1, col2 = st.columns(2)
     with col1:
         st.download_button(
